@@ -6,6 +6,22 @@ on:
     - cron: "*/10 * * * *"
   # Allow the workflow to be triggered manually
   workflow_dispatch:
+    inputs:
+      max_retries:
+        description: 'Maximum number of retries'
+        required: false
+        default: '3'
+      retry_delay:
+        description: 'Delay between retries (in seconds)'
+        required: false
+        default: '5'
+      timeout:
+        description: 'Timeout for the ping request (in seconds)'
+        required: false
+        default: '10'
+
+env:
+  PING_URL: ${{ secrets.PING_URL }}
 
 jobs:
   ping_job:
@@ -15,8 +31,54 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Ping the URL
-        env:
-          PING_URL: ${{ secrets.PING_URL }}
+      - name: Fetch user email
+        id: fetch_email
         run: |
-          curl -X GET "$PING_URL"
+          user_email=$(curl -s "https://api.github.com/users/${GITHUB_ACTOR}" | jq -r .email)
+          echo "::set-output name=email::$user_email"
+
+      - name: Ping the URL
+        id: ping
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const maxRetries = parseInt(core.getInput('max_retries'), 10);
+            const retryDelay = parseInt(core.getInput('retry_delay'), 10) * 1000;
+            const timeout = parseInt(core.getInput('timeout'), 10) * 1000;
+            let success = false;
+
+            for (let i = 0; i < maxRetries; i++) {
+              try {
+                const response = await fetch(process.env.PING_URL, { method: 'GET', timeout });
+                if (response.status === 200) {
+                  core.info(`Ping succeeded with response code ${response.status}`);
+                  success = true;
+                  break;
+                } else {
+                  core.warning(`Ping failed with response code ${response.status}`);
+                }
+              } catch (error) {
+                core.warning(`Ping attempt failed: ${error.message}`);
+              }
+
+              if (i < maxRetries - 1) {
+                core.info(`Retrying... (${i + 1}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+              }
+            }
+
+            if (!success) {
+              core.setFailed('Ping failed after multiple attempts');
+            } else {
+              core.setOutput('success', true);
+            }
+
+      - name: Send email notification on failure
+        if: failure()
+        run: |
+          echo "Ping to ${{ env.PING_URL }} failed after multiple attempts." | mail -s "Ping Failure Notification" ${{ steps.fetch_email.outputs.email }}
+
+      - name: Send email notification on success
+        if: success()
+        run: |
+          echo "Ping to ${{ env.PING_URL }} succeeded." | mail -s "Ping Success Notification" ${{ steps.fetch_email.outputs.email }}
