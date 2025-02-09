@@ -1,10 +1,8 @@
 name: Periodic and On-Demand Pinging
 
 on:
-  # Schedule the workflow to run every 10 minutes
   schedule:
     - cron: "*/10 * * * *"
-  # Allow the workflow to be triggered manually
   workflow_dispatch:
     inputs:
       max_retries:
@@ -35,7 +33,7 @@ jobs:
         id: fetch_email
         run: |
           user_email=$(curl -s "https://api.github.com/users/${GITHUB_ACTOR}" | jq -r .email)
-          echo "::set-output name=email::$user_email"
+          echo "email=$user_email" >> $GITHUB_ENV
 
       - name: Ping the URL
         id: ping
@@ -70,15 +68,15 @@ jobs:
             if (!success) {
               core.setFailed('Ping failed after multiple attempts');
             } else {
-              core.setOutput('success', true);
+              core.exportVariable('PING_SUCCESS', 'true');
             }
 
       - name: Send email notification on failure
         if: failure()
         run: |
-          echo "Ping to ${{ env.PING_URL }} failed after multiple attempts." | mail -s "Ping Failure Notification" ${{ steps.fetch_email.outputs.email }}
+          echo "Ping to ${{ env.PING_URL }} failed after multiple attempts." | mail -s "Ping Failure Notification" ${{ env.email }}
 
       - name: Send email notification on success
         if: success()
         run: |
-          echo "Ping to ${{ env.PING_URL }} succeeded." | mail -s "Ping Success Notification" ${{ steps.fetch_email.outputs.email }}
+          echo "Ping to ${{ env.PING_URL }} succeeded." | mail -s "Ping Success Notification" ${{ env.email }}
