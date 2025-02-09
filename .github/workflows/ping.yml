@@ -4,19 +4,6 @@ on:
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
-    inputs:
-      max_retries:
-        description: 'Maximum number of retries'
-        required: false
-        default: '3'
-      retry_delay:
-        description: 'Delay between retries (in seconds)'
-        required: false
-        default: '5'
-      timeout:
-        description: 'Timeout for the ping request (in seconds)'
-        required: false
-        default: '10'
 
 env:
   PING_URL: ${{ secrets.PING_URL }}
@@ -29,20 +16,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Fetch user email
-        id: fetch_email
-        run: |
-          user_email=$(curl -s "https://api.github.com/users/${GITHUB_ACTOR}" | jq -r .email)
-          echo "email=$user_email" >> $GITHUB_ENV
-
       - name: Ping the URL
         id: ping
         uses: actions/github-script@v6
         with:
           script: |
-            const maxRetries = parseInt(core.getInput('max_retries'), 10);
-            const retryDelay = parseInt(core.getInput('retry_delay'), 10) * 1000;
-            const timeout = parseInt(core.getInput('timeout'), 10) * 1000;
+            const maxRetries = 5;
+            const retryDelay = 10 * 1000;
+            const timeout = 20 * 1000;
             let success = false;
 
             for (let i = 0; i < maxRetries; i++) {
@@ -69,14 +50,3 @@ jobs:
               core.setFailed('Ping failed after multiple attempts');
             } else {
               core.exportVariable('PING_SUCCESS', 'true');
-            }
-
-      - name: Send email notification on failure
-        if: failure()
-        run: |
-          echo "Ping to ${{ env.PING_URL }} failed after multiple attempts." | mail -s "Ping Failure Notification" ${{ env.email }}
-
-      - name: Send email notification on success
-        if: success()
-        run: |
-          echo "Ping to ${{ env.PING_URL }} succeeded." | mail -s "Ping Success Notification" ${{ env.email }}
