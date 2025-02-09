@@ -1,0 +1,22 @@
+name: Periodic and On-Demand Pinging
+
+on:
+  # Schedule the workflow to run every 10 minutes
+  schedule:
+    - cron: "*/10 * * * *"
+  # Allow the workflow to be triggered manually
+  workflow_dispatch:
+
+jobs:
+  ping_job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Ping the URL
+        env:
+          PING_URL: ${{ secrets.PING_URL }}
+        run: |
+          curl -X GET "$PING_URL"
