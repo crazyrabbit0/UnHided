@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping the URL
         run: |
-          curl -X GET ${{ secrets.PING_URL }}
+          curl -X GET "${{ secrets.PING_URL }}"
