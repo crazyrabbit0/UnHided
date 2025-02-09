@@ -1,21 +1,14 @@
-name: Periodic and On-Demand Pinging
+name: Periodic Ping
 
 on:
   schedule:
     - cron: "*/10 * * * *"  # Runs every 10 minutes
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:        # Allows manual trigger
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Check if PING_URL is set
-        run: |
-          if [ -z "${{ secrets.PING_URL }}" ]; then
-            echo "Error: PING_URL is not set."
-            exit 1
-          fi
-
       - name: Ping the URL
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.PING_URL }})
