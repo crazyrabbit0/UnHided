@@ -11,10 +11,4 @@ jobs:
     steps:
       - name: Ping the URL
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.PING_URL }})
-          if [ "$response" -ne 200 ]; then
-            echo "Error: Received HTTP status code $response"
-            exit 1
-          else
-            echo "Successfully pinged the secret URL."
-          fi
+          curl -X GET ${{ secrets.PING_URL }}
