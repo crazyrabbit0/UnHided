@@ -1,4 +1,4 @@
-name: Ping Secret URL
+name: Periodic and On-Demand Pinging
 
 on:
   schedule:
@@ -16,7 +16,7 @@ jobs:
             exit 1
           fi
 
-      - name: Ping Secret URL
+      - name: Ping the URL
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.PING_URL }})
           if [ "$response" -ne 200 ]; then
