@@ -50,3 +50,4 @@ jobs:
               core.setFailed('Ping failed after multiple attempts');
             } else {
               core.exportVariable('PING_SUCCESS', 'true');
+            }
