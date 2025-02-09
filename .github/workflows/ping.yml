@@ -1,53 +1,27 @@
-name: Periodic and On-Demand Pinging
+name: Ping Secret URL
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
-  workflow_dispatch:
-
-env:
-  PING_URL: ${{ secrets.PING_URL }}
+    - cron: "*/10 * * * *"  # Runs every 10 minutes
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
-  ping_job:
+  ping:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Check if PING_URL is set
+        run: |
+          if [ -z "${{ secrets.PING_URL }}" ]; then
+            echo "Error: PING_URL is not set."
+            exit 1
+          fi
 
-      - name: Ping the URL
-        id: ping
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const maxRetries = 5;
-            const retryDelay = 10 * 1000;
-            const timeout = 20 * 1000;
-            let success = false;
-
-            for (let i = 0; i < maxRetries; i++) {
-              try {
-                const response = await fetch(process.env.PING_URL, { method: 'GET', timeout });
-                if (response.status === 200) {
-                  core.info(`Ping succeeded with response code ${response.status}`);
-                  success = true;
-                  break;
-                } else {
-                  core.warning(`Ping failed with response code ${response.status}`);
-                }
-              } catch (error) {
-                core.warning(`Ping attempt failed: ${error.message}`);
-              }
-
-              if (i < maxRetries - 1) {
-                core.info(`Retrying... (${i + 1}/${maxRetries})`);
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-              }
-            }
-
-            if (!success) {
-              core.setFailed('Ping failed after multiple attempts');
-            } else {
-              core.exportVariable('PING_SUCCESS', 'true');
-            }
+      - name: Ping Secret URL
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.PING_URL }})
+          if [ "$response" -ne 200 ]; then
+            echo "Error: Received HTTP status code $response"
+            exit 1
+          else
+            echo "Successfully pinged the secret URL."
+          fi
