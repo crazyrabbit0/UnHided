@@ -2,19 +2,31 @@ name: Periodic Ping Monitor
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # Runs every 10 minutes
-  workflow_dispatch:         # Allows manual trigger
+    - cron: "*/5 * * * *"   # Runs every 5 minutes
+  workflow_dispatch:        # Allows manual trigger
 
 jobs:
-  monitor:
+  check-ping-timeliness:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check and Trigger Periodic Ping
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          latest_run=$(gh run list -w ping.yml -L 1 --json status,conclusion,createdAt --jq '.[] | select(.conclusion == "success") | .createdAt')
-          if [[ -z "$latest_run" || $(date -d "$latest_run" +%s) -le $(date -d "10 minutes ago" +%s) ]]; then
-            gh workflow run ping.yml
-          else
-            echo "Ping workflow ran successfully within the last 10 minutes."
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const response = await github.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'ping.yml',
+              status: 'completed',
+              per_page: 5
+            });
+            const lastRunTime = new Date(response.data.workflow_runs[0].created_at);
+            const expectedInterval = 10 * 60 * 1000;  // 10 minutes in milliseconds
+            const diff = new Date() - lastRunTime;
+
+            if (diff > expectedInterval) {
+              console.log("The Periodic Ping workflow has missed its schedule.");
+            } else {
+              console.log("The Periodic Ping workflow is on schedule.");
+            }
