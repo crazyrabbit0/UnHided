@@ -25,7 +25,7 @@ jobs:
               per_page: 5
             });
             const lastRunTime = new Date(response.data.workflow_runs[0].created_at);
-            const expectedInterval = 10 * 60 * 1000;  // 10 minutes in milliseconds
+            const expectedInterval = 1 * 60 * 1000;  // 10 minutes in milliseconds
             const diff = new Date() - lastRunTime;
 
             if (diff > expectedInterval) {
