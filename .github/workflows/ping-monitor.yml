@@ -19,26 +19,30 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const workflowDetails = {
+            const workflow = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: context.payload.inputs.workflow_id
             };
-            const response = await github.rest.actions.listWorkflowRuns({
-              ...workflowDetails,
-              status: 'completed',
-              per_page: 5
-            });
-            const lastRunTime = new Date(response.data.workflow_runs[0].created_at);
-            const expectedInterval = 10 * 60 * 1000;  // 10 minutes in milliseconds
-            const diff = new Date() - lastRunTime;
 
-            if (diff > expectedInterval) {
-              console.log(`The workflow has missed its schedule.`);
+            // Fetch workflow details
+            const workflowResponse = await github.rest.actions.getWorkflow(workflow);
+            workflow.name = workflowResponse.data.name;
+
+            // Fetch last successful workflow run
+            const workflowRuns = workflowResponse.data.workflow_runs;
+            const lastRunTime = new Date(workflowRuns[0].created_at);
+            
+            const timeSinceLastRun = new Date() - lastRunTime;
+            const checkInterval = 10 * 60 * 1000;  // 10 minutes in milliseconds
+
+            if (timeSinceLastRun >= checkInterval) {
+              console.log(`The workflow "${workflow.name}" has missed its schedule.`);
+              // Run workflow
               await github.rest.actions.createWorkflowDispatch({
-                ...workflowDetails,
+                ...workflow,
                 ref: context.ref
               });
             } else {
-              console.log(`The workflow is on schedule.`);
+              console.log(`The workflow "${workflow.name}" is on schedule.`);
             }
