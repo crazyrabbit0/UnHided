@@ -1,9 +1,5 @@
 name: Periodic Ping Monitor
 
-env:
-  DEFAULT_WORKFLOW_ID: 'ping.yml'
-  DEFAULT_CHECK_INTERVAL: '5'
-
 on:
   schedule:
     - cron: "*/5 * * * *"   # Runs every 5 minutes
@@ -12,11 +8,11 @@ on:
       workflow_id:
         description: 'Workflow id to check and trigger'
         required: false
-        default: ${{ env.DEFAULT_WORKFLOW_ID }}
+        default: 'ping.yml'
       check_interval:
         description: 'Time interval (in minutes)'
         required: false
-        default: ${{ env.DEFAULT_CHECK_INTERVAL }}
+        default: '5'
 
 jobs:
   workflow-monitor:
@@ -30,7 +26,7 @@ jobs:
             const workflow = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: context.payload.inputs?.workflow_id || process.env.DEFAULT_WORKFLOW_ID
+              workflow_id: context.payload.inputs?.workflow_id || 'ping.yml'
             };
 
             // Fetch workflow details
@@ -46,7 +42,7 @@ jobs:
             const last_run_time = new Date(workflow_runs_response.data.workflow_runs[0].created_at);
             
             const time_since_last_run = new Date() - last_run_time;
-            const check_interval = parseInt(context.payload.inputs?.check_interval || process.env.DEFAULT_CHECK_INTERVAL) * 60 * 1000;  // Convert minutes to milliseconds
+            const check_interval = parseInt(context.payload.inputs?.check_interval || '5') * 60 * 1000;  // Convert minutes to milliseconds
 
             if (time_since_last_run >= check_interval) {
               console.log(`The workflow "${workflow_name}" has missed its schedule.`);
