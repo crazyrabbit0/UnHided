@@ -6,16 +6,20 @@ on:
   workflow_dispatch:        # Allows manual trigger
     inputs:
       workflow_id:
-        description: 'The workflow id to check and trigger'
+        description: 'Workflow id to check and trigger'
         required: false
-        default: 'ping.yml'  # Default workflow ID
+        default: 'ping.yml'
+      check_interval:
+        description: 'Time interval (in minutes)'
+        required: false
+        default: '5'
 
 jobs:
-  check-ping-timeliness:
+  workflow-monitor:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check and Trigger Periodic Ping
+      - name: Workflow Check & Trigger
         uses: actions/github-script@v6
         with:
           script: |
@@ -26,27 +30,27 @@ jobs:
             };
 
             // Fetch workflow details
-            const workflowResponse = await github.rest.actions.getWorkflow(workflow);
-            const workflowName = workflowResponse.data.name;
+            const workflow_response = await github.rest.actions.getWorkflow(workflow);
+            const workflow_name = workflow_response.data.name;
 
             // Fetch last successful workflow run
-            const workflowRunsResponse = await github.rest.actions.listWorkflowRuns({
+            const workflow_runs_response = await github.rest.actions.listWorkflowRuns({
               ...workflow,
               status: 'success',
               per_page: 1
             });
-            const lastRunTime = new Date(workflowRunsResponse.data.workflow_runs[0].created_at);
+            const last_run_time = new Date(workflow_runs_response.data.workflow_runs[0].created_at);
             
-            const timeSinceLastRun = new Date() - lastRunTime;
-            const checkInterval = 10 * 60 * 1000;  // 10 minutes in milliseconds
+            const time_since_last_run = new Date() - last_run_time;
+            const check_interval = parseInt(context.payload.inputs.check_interval) * 60 * 1000;  // Convert minutes to milliseconds
 
-            if (timeSinceLastRun >= checkInterval) {
-              console.log(`The workflow "${workflowName}" has missed its schedule.`);
+            if (time_since_last_run >= check_interval) {
+              console.log(`The workflow "${workflow_name}" has missed its schedule.`);
               // Run workflow
               await github.rest.actions.createWorkflowDispatch({
                 ...workflow,
                 ref: context.ref
               });
             } else {
-              console.log(`The workflow "${workflowName}" is on schedule.`);
+              console.log(`The workflow "${workflow_name}" is on schedule.`);
             }
