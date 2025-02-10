@@ -7,7 +7,7 @@ on:
     inputs:
       workflow_id:
         description: 'The ID of the workflow to check and trigger'
-        required: true
+        required: false
         default: 'ping.yml'  # Default workflow ID
 
 jobs:
@@ -19,13 +19,12 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const workflow_id = core.getInput('workflow_id');
-            console.log(`Workflow ID: ${workflow_id}`);
-            
+            const core = require('@actions/core');
+
             const workflowDetails = {
-              owner: github.context.repo.owner,
-              repo: github.context.repo.repo,
-              workflow_id: workflow_id
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: core.getInput('workflow_id')
             };
             const response = await github.rest.actions.listWorkflowRuns({
               ...workflowDetails,
@@ -40,7 +39,7 @@ jobs:
               console.log(`The workflow has missed its schedule.`);
               await github.rest.actions.createWorkflowDispatch({
                 ...workflowDetails,
-                ref: github.context.ref
+                ref: context.ref
               });
             } else {
               console.log(`The workflow is on schedule.`);
