@@ -30,8 +30,6 @@ jobs:
             --retry-max-time 90 \
             --retry-all-errors \
             ${{ secrets.PING_URL }})
-
-          echo "Received status code: $status_code"
           
           if [ "$status_code" -ge 200 ] && [ "$status_code" -lt 300 ]; then
             echo "✅ Success with status code: $status_code"
