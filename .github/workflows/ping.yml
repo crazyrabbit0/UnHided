@@ -10,4 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping the URL
-        run: curl "${{ secrets.PING_URL }}"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const response = await fetch(secrets.PING_URL);
+            console.log(`Pinged ${secrets.PING_URL} with status ${response.status}`);
