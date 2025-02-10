@@ -9,11 +9,16 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
       - name: Ping the URL
         uses: actions/github-script@v6
-        env:
-          PING_URL: ${{ secrets.PING_URL }}
         with:
           script: |
+            const fetch = require('node-fetch');
             const response = await fetch(process.env.PING_URL);
-            console.log(`Pinged ${secrets.PING_URL} with status ${response.status}`);
+            console.log(`Pinged ${process.env.PING_URL} with status ${response.status}`);
+        env:
+          PING_URL: ${{ secrets.PING_URL }}
