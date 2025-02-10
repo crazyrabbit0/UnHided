@@ -1,0 +1,18 @@
+name: Periodic Ping Monitor
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # Runs every 10 minutes
+  workflow_dispatch:         # Allows manual trigger
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check and Trigger Periodic Ping
+        run: |
+          latest_run=$(gh run list -w ping.yml -L 1 --json status,conclusion,createdAt --jq '.[] | select(.conclusion == "success") | .createdAt')
+          if [[ -z "$latest_run" || $(date -d "$latest_run" +%s) -le $(date -d "10 minutes ago" +%s) ]]; then
+            gh workflow run ping.yml
+          else
+            echo "Ping workflow ran successfully within the last 10 minutes."
