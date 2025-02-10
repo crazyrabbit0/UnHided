@@ -19,8 +19,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const core = require('@actions/core');
-
             const workflowDetails = {
               owner: context.repo.owner,
               repo: context.repo.repo,
