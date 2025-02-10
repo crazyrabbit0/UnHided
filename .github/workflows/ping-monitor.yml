@@ -8,7 +8,7 @@ on:
       workflow_id:
         description: 'The ID of the workflow to check and trigger'
         required: true
-        default: 'Periodic Ping'  # Default workflow ID
+        default: 'ping.yml'  # Default workflow ID
 
 jobs:
   check-ping-timeliness:
@@ -34,11 +34,11 @@ jobs:
             const diff = new Date() - lastRunTime;
 
             if (diff > expectedInterval) {
-              console.log(`The workflow '${core.getInput("workflow_id")}' has missed its schedule.`);
+              console.log(`The workflow has missed its schedule.`);
               await github.rest.actions.createWorkflowDispatch({
                 ...workflowDetails,
                 ref: context.ref
               });
             } else {
-              console.log(`The workflow '${core.getInput("workflow_id")}' is on schedule.`);
+              console.log(`The workflow is on schedule.`);
             }
