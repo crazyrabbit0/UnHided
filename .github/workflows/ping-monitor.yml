@@ -19,10 +19,13 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const workflow_id = core.getInput('workflow_id');
+            console.log(`Workflow ID: ${workflow_id}`);
+            
             const workflowDetails = {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: core.getInput('workflow_id')
+              owner: github.context.repo.owner,
+              repo: github.context.repo.repo,
+              workflow_id: workflow_id
             };
             const response = await github.rest.actions.listWorkflowRuns({
               ...workflowDetails,
@@ -37,7 +40,7 @@ jobs:
               console.log(`The workflow has missed its schedule.`);
               await github.rest.actions.createWorkflowDispatch({
                 ...workflowDetails,
-                ref: context.ref
+                ref: github.context.ref
               });
             } else {
               console.log(`The workflow is on schedule.`);
