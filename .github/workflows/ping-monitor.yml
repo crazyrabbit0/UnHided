@@ -27,7 +27,7 @@ jobs:
 
             // Fetch workflow details
             const workflowResponse = await github.rest.actions.getWorkflow(workflow);
-            workflow.name = workflowResponse.data.name;
+            const workflowName = workflowResponse.data.name;
 
             // Fetch last successful workflow run
             const workflowRunsResponse = await github.rest.actions.listWorkflowRuns({
@@ -41,12 +41,12 @@ jobs:
             const checkInterval = 10 * 60 * 1000;  // 10 minutes in milliseconds
 
             if (timeSinceLastRun >= checkInterval) {
-              console.log(`The workflow "${workflow.name}" has missed its schedule.`);
+              console.log(`The workflow "${workflowName}" has missed its schedule.`);
               // Run workflow
               await github.rest.actions.createWorkflowDispatch({
                 ...workflow,
                 ref: context.ref
               });
             } else {
-              console.log(`The workflow "${workflow.name}" is on schedule.`);
+              console.log(`The workflow "${workflowName}" is on schedule.`);
             }
