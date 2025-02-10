@@ -22,7 +22,7 @@ jobs:
             const workflowDetails = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: ${{ inputs.workflow_id }}
+              workflow_id: "${{ inputs.workflow_id }}"
             };
             const response = await github.rest.actions.listWorkflowRuns({
               ...workflowDetails,
