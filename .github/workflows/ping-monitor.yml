@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check and Trigger Periodic Ping
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           latest_run=$(gh run list -w ping.yml -L 1 --json status,conclusion,createdAt --jq '.[] | select(.conclusion == "success") | .createdAt')
           if [[ -z "$latest_run" || $(date -d "$latest_run" +%s) -le $(date -d "10 minutes ago" +%s) ]]; then
