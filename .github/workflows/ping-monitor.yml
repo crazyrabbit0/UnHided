@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "*/5 * * * *"   # Runs every 5 minutes
   workflow_dispatch:        # Allows manual trigger
+    inputs:
+      workflow_id:
+        description: 'The ID of the workflow to check and trigger'
+        required: true
+        default: 'Periodic Ping'  # Default workflow ID
 
 jobs:
   check-ping-timeliness:
@@ -17,7 +22,7 @@ jobs:
             const workflowDetails = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'ping.yml'
+              workflow_id: core.getInput('workflow_id')
             };
             const response = await github.rest.actions.listWorkflowRuns({
               ...workflowDetails,
@@ -29,11 +34,11 @@ jobs:
             const diff = new Date() - lastRunTime;
 
             if (diff > expectedInterval) {
-              console.log("The Periodic Ping workflow has missed its schedule.");
+              console.log(`The workflow '${core.getInput("workflow_id")}' has missed its schedule.`);
               await github.rest.actions.createWorkflowDispatch({
                 ...workflowDetails,
                 ref: context.ref
               });
             } else {
-              console.log("The Periodic Ping workflow is on schedule.");
+              console.log(`The workflow '${core.getInput("workflow_id")}' is on schedule.`);
             }
