@@ -17,7 +17,5 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const response = await fetch(process.env.PING_URL);
+            const response = await fetch(secrets.PING_URL);
             console.log(`Pinged ${process.env.PING_URL} with status ${response.status}`);
-        env:
-          PING_URL: ${{ secrets.PING_URL }}
