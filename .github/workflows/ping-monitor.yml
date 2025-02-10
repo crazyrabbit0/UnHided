@@ -14,10 +14,13 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const response = await github.rest.actions.listWorkflowRuns({
+            const workflowDetails = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'ping.yml',
+              workflow_id: 'ping.yml'
+            };
+            const response = await github.rest.actions.listWorkflowRuns({
+              ...workflowDetails,
               status: 'completed',
               per_page: 5
             });
@@ -27,6 +30,10 @@ jobs:
 
             if (diff > expectedInterval) {
               console.log("The Periodic Ping workflow has missed its schedule.");
+              await github.rest.actions.createWorkflowDispatch({
+                ...workflowDetails,
+                ref: context.ref
+              });
             } else {
               console.log("The Periodic Ping workflow is on schedule.");
             }
