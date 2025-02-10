@@ -30,8 +30,12 @@ jobs:
             workflow.name = workflowResponse.data.name;
 
             // Fetch last successful workflow run
-            const workflowRuns = workflowResponse.data.workflow_runs;
-            const lastRunTime = new Date(workflowRuns[0].created_at);
+            const workflowRunsResponse = await github.rest.actions.listWorkflowRuns({
+              ...workflow,
+              status: 'success',
+              per_page: 1
+            });
+            const lastRunTime = new Date(workflowRunsResponse.data.workflow_runs[0].created_at);
             
             const timeSinceLastRun = new Date() - lastRunTime;
             const checkInterval = 10 * 60 * 1000;  // 10 minutes in milliseconds
