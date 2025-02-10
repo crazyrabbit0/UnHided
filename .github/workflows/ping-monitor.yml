@@ -6,7 +6,7 @@ on:
   workflow_dispatch:        # Allows manual trigger
     inputs:
       workflow_id:
-        description: 'The ID of the workflow to check and trigger'
+        description: 'The workflow id to check and trigger'
         required: false
         default: 'ping.yml'  # Default workflow ID
 
@@ -22,7 +22,7 @@ jobs:
             const workflowDetails = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: core.getInput('workflow_id')
+              workflow_id: context.payload.inputs.workflow_id
             };
             const response = await github.rest.actions.listWorkflowRuns({
               ...workflowDetails,
