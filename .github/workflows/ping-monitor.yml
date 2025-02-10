@@ -17,6 +17,7 @@ on:
 jobs:
   workflow-monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 3  # Add timeout to prevent hung jobs
 
     steps:
       - name: Workflow Check & Trigger
@@ -29,28 +30,42 @@ jobs:
               workflow_id: context.payload.inputs?.workflow_id || 'ping.yml'
             };
 
-            // Fetch workflow details
-            const workflow_response = await github.rest.actions.getWorkflow(workflow);
-            const workflow_name = workflow_response.data.name;
+            try {
+                // Parallel fetch: workflow details & last successful run.
+              const [workflow_response, workflow_runs_response] = await Promise.all([
+                github.rest.actions.getWorkflow(workflow),
+                github.rest.actions.listWorkflowRuns({
+                  ...workflow,
+                  status: 'success',
+                  per_page: 1,
+                  exclude_pull_requests: true  // Optimize by excluding PR runs
+                })
+              ]);
 
-            // Fetch last successful workflow run
-            const workflow_runs_response = await github.rest.actions.listWorkflowRuns({
-              ...workflow,
-              status: 'success',
-              per_page: 1
-            });
-            const last_run_time = new Date(workflow_runs_response.data.workflow_runs[0].created_at);
-            
-            const time_since_last_run = new Date() - last_run_time;
-            const check_interval = parseInt(context.payload.inputs?.check_interval || '5') * 60 * 1000;  // Convert minutes to milliseconds
+              const workflow_name = workflow_response.data.name;
+              const last_run = workflow_runs_response.data.workflow_runs[0];
+              
+              if (!last_run) {
+                console.log(`No previous successful runs found for "${workflow_name}". Triggering workflow.`);
+                await github.rest.actions.createWorkflowDispatch({
+                  ...workflow,
+                  ref: context.ref
+                });
+                return;
+              }
 
-            if (time_since_last_run >= check_interval) {
-              console.log(`The workflow "${workflow_name}" has missed its schedule.`);
-              // Run workflow
-              await github.rest.actions.createWorkflowDispatch({
-                ...workflow,
-                ref: context.ref
-              });
-            } else {
-              console.log(`The workflow "${workflow_name}" is on schedule.`);
+              const time_since_last_run = Date.now() - new Date(last_run.created_at).getTime();
+              const check_interval = parseInt(context.payload.inputs?.check_interval || '5') * 60 * 1000;
+
+              if (time_since_last_run >= check_interval) {
+                console.log(`The workflow "${workflow_name}" has missed its schedule (${time_since_last_run}ms since last run). Triggering new run.`);
+                await github.rest.actions.createWorkflowDispatch({
+                  ...workflow,
+                  ref: context.ref
+                });
+              } else {
+                console.log(`The workflow "${workflow_name}" is on schedule (${time_since_last_run}ms since last run).`);
+              }
+            } catch (error) {
+              core.setFailed(`Workflow check failed: ${error.message}`);
             }
